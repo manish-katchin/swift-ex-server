@@ -6,7 +6,11 @@ import { AxiosHeaders } from 'axios';
 import * as crypto from 'crypto';
 import { AxiosResponse } from '../../../common/interface/axiosResponse';
 import { CreateBuyOrderDto } from './dto/alchemy-create-order.dto';
-import { buildAlchemySellOrderPayload, SellOrderDto } from './dto/alchemy-sell-order.dto';
+import {
+  buildAlchemySellOrderPayload,
+  SellOrderDto,
+} from './dto/alchemy-sell-order.dto';
+import { User } from '../users/schema/user.schema';
 
 @Injectable()
 export class AlchemyService {
@@ -94,8 +98,9 @@ export class AlchemyService {
 
   async orderCreate(
     createBuyOrderDto: CreateBuyOrderDto,
-    email: string,
+    user: User,
   ): Promise<AxiosResponse | void> {
+    const { email } = user;
     const orderTimestamp = Date.now().toString();
     const payload = Object.assign(createBuyOrderDto, {
       side: 'BUY',
@@ -137,26 +142,26 @@ export class AlchemyService {
   }
 
   async sellOrderCreate(payload: SellOrderDto, email: string): Promise<string> {
-      (payload as any).email = email;
-      const sellFianlPayload=buildAlchemySellOrderPayload(payload)
+    (payload as any).email = email;
+    const sellFianlPayload = buildAlchemySellOrderPayload(payload);
 
-      const rawDataToSign = this.getStringToSign(sellFianlPayload);
-      const requestPathWithParams =
-        process.env.USER_SELL_ORDER_REQUEST_URL + '?' + rawDataToSign;
-      const onRampSignature = this.generateSignature(
-        sellFianlPayload.timestamp,
-        AlchemyMethod.GET,
-        requestPathWithParams,
-        process.env.ALCHEMY_PAY_SECRET as string,
-      );
+    const rawDataToSign = this.getStringToSign(sellFianlPayload);
+    const requestPathWithParams =
+      process.env.USER_SELL_ORDER_REQUEST_URL + '?' + rawDataToSign;
+    const onRampSignature = this.generateSignature(
+      sellFianlPayload.timestamp,
+      AlchemyMethod.GET,
+      requestPathWithParams,
+      process.env.ALCHEMY_PAY_SECRET as string,
+    );
 
-      const finalUrl =
-        process.env.USER_SELL_ORDER_URL +
-        rawDataToSign +
-        '&sign=' +
-        onRampSignature;
+    const finalUrl =
+      process.env.USER_SELL_ORDER_URL +
+      rawDataToSign +
+      '&sign=' +
+      onRampSignature;
 
-      return finalUrl;
+    return finalUrl;
   }
 
   // Function to sort parameters and return a string to sign
