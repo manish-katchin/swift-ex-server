@@ -3,10 +3,8 @@ name: Deploy to ECR and ECS
 on:
   push:
     branches:
-      - main  # Only trigger on main branch
-  pull_request:
-    branches:
-      - main  # Only trigger on PRs targeting main
+      - main    # Auto-deploy on push to main
+      - devops  # Auto-deploy on push to devops
   workflow_dispatch:
     inputs:
       branch:
@@ -52,6 +50,7 @@ jobs:
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
       env:
+        AWS_REGION: ${{ env.AWS_REGION }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
@@ -63,6 +62,8 @@ jobs:
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
     - name: Force ECS service update
+      env:
+        AWS_REGION: ${{ env.AWS_REGION }}
       run: |
         aws ecs update-service \
           --cluster ${{ env.ECS_CLUSTER }} \
