@@ -2,9 +2,17 @@ name: Deploy to ECR and ECS
 
 on:
   push:
-    branches: [ devops, dev, main ]
+    branches:
+      - main  # Only trigger on main branch
   pull_request:
-    branches: [ devops, dev, main ]
+    branches:
+      - main  # Only trigger on PRs targeting main
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: false
+        type: string
 
 env:
   AWS_REGION: ap-south-1
@@ -12,6 +20,11 @@ env:
   ECR_REPOSITORY: dev-swiftx-engines-ecr
   ECS_SERVICE: dev-swiftx-engines-ecs-service
   ECS_CLUSTER: dev-swiftx-engines-cluster
+
+# Cancel in-progress runs when new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -23,6 +36,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
