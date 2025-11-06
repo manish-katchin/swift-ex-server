@@ -1,0 +1,48 @@
+{
+  "mongodb_conn_string": {
+    "value": "mongodb://username:password@host:27017/database",
+    "type": "SecureString",
+    "description": "MongoDB connection string (encrypted)"
+  },
+  "db_name": {
+    "value": "swift-ex-server",
+    "type": "String",
+    "description": "MongoDB database name"
+  },
+  "password_salt_rounds": {
+    "value": "10",
+    "type": "String",
+    "description": "Number of salt rounds for password hashing"
+  },
+  "jwt_secret": {
+    "value": "your-super-secret-jwt-key-change-this",
+    "type": "SecureString",
+    "description": "JWT signing secret (encrypted)"
+  },
+  "gmail_client_id": {
+    "value": "your-gmail-client-id.apps.googleusercontent.com",
+    "type": "SecureString",
+    "description": "Gmail OAuth2 client ID (encrypted)"
+  },
+  "gmail_client_secret": {
+    "value": "your-gmail-client-secret",
+    "type": "SecureString",
+    "description": "Gmail OAuth2 client secret (encrypted)"
+  },
+  "gmail_access_token": {
+    "value": "your-gmail-access-token",
+    "type": "SecureString",
+    "description": "Gmail OAuth2 access token (encrypted)"
+  },
+  "gmail_refresh_token": {
+    "value": "your-gmail-refresh-token",
+    "type": "SecureString",
+    "description": "Gmail OAuth2 refresh token (encrypted)"
+  },
+  "gmail_redirect_uri": {
+    "value": "https://developers.google.com/oauthplayground",
+    "type": "String",
+    "description": "Gmail OAuth2 redirect URI"
+  }
+}
+
