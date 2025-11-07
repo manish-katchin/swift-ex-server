@@ -15,15 +15,11 @@ import { MailModule } from './api/v1/mail/mail.module';
 import { AlchemyModule } from './api/v1/alchemy/alchemy.module';
 import { WalletModule } from './api/v1/wallet/wallet.module';
 import { StellarModule } from './api/v1/stellar/stellar.module';
-import { WatcherModule } from './api/v1/watcher/watcher.module';
 import { NotificationModule } from './api/v1/notification/notification.module';
 import { DeviceAuthTokenMiddleware } from './common/middleware/device-auth-token-middleware';
 import { AuthTokenMiddleware } from './common/middleware/auth-token.middleware';
-import { google } from 'googleapis';
 import { MarketDataModule } from './api/v1/market-data/market-data.module';
 import { ScheduleModule } from '@nestjs/schedule';
-
-const OAuth2 = google.auth.OAuth2;
 
 @Module({
   imports: [
@@ -33,48 +29,54 @@ const OAuth2 = google.auth.OAuth2;
     }),
     MailerModule.forRootAsync({
       useFactory: async () => {
-        const oAuth2Client = new OAuth2(
-          process.env.GMAIL_CLIENT_ID,
-          process.env.GMAIL_CLIENT_SECRET,
-          process.env.GMAIL_REDIRECT_URI,
-        );
-        oAuth2Client.setCredentials({
-          refresh_token: process.env.GMAIL_REFRESH_TOKEN,
-        });
-
-        // Get fresh access token before transporter is created
-        const accessToken = await oAuth2Client.getAccessToken();
-
-        return {
-          transport: {
-            service: 'gmail',
-            auth: {
-              type: 'OAuth2',
-              user: process.env.GMAIL_USER,
-              clientId: process.env.GMAIL_CLIENT_ID,
-              clientSecret: process.env.GMAIL_CLIENT_SECRET,
-              refreshToken: process.env.GMAIL_REFRESH_TOKEN,
-              accessToken: accessToken.token, // fresh token
+        if (process.env.ENVIRONMENT === 'dev') {
+          // 🔹 Gmail Setup
+          return {
+            transport: {
+              host: process.env.EMAIL_HOST,
+              port: parseInt(process.env.EMAIL_PORT as string) || 465,
+              secure: parseInt(process.env.EMAIL_PORT as string) === 465,
+              auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+              },
             },
-          },
-          defaults: {
-            from: '"SwiftEx" <' + process.env.GMAIL_USER + '>',
-          },
-          preview: false,
-          template: {
-            dir: path.join(__dirname, '/../', '/templates/'),
-            adapter: new HandlebarsAdapter(), // or new PugAdapter() or new EjsAdapter()
-            options: {
-              strict: true,
+            defaults: {
+              from: `"SwiftEx Dev" <${process.env.EMAIL_USER}>`,
             },
-          },
-        };
+            template: {
+              dir: path.join(__dirname, '/../templates/'),
+              adapter: new HandlebarsAdapter(),
+              options: { strict: true },
+            },
+          };
+        } else {
+          // 🔹 SendGrid SMTP Setup
+          return {
+            transport: {
+              host: 'smtp.sendgrid.net',
+              port: 587,
+              auth: {
+                user: 'apikey', // this literal string is required by SendGrid
+                pass: process.env.SENDGRID_API_KEY,
+              },
+            },
+            defaults: {
+              from: `"SwiftEx" <process.env.SENDGRID_EMAIL_USER>`,
+            },
+            template: {
+              dir: path.join(__dirname, '/../templates/'),
+              adapter: new HandlebarsAdapter(),
+              options: { strict: true },
+            },
+          };
+        }
       },
     }),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '7d' },
+      signOptions: { expiresIn: process.env.JWT_EXPIRE },
       verifyOptions: { ignoreExpiration: false },
     }),
     ScheduleModule.forRoot(),
@@ -85,7 +87,6 @@ const OAuth2 = google.auth.OAuth2;
     AlchemyModule,
     WalletModule,
     StellarModule,
-    WatcherModule,
     NotificationModule,
     MarketDataModule,
   ],
@@ -103,6 +104,10 @@ export class AppModule {
         },
         {
           path: '/api/v1/device/:uniqueId/unique-id',
+          method: RequestMethod.GET,
+        },
+        {
+          path: '/health',
           method: RequestMethod.GET,
         },
       )
@@ -160,11 +165,7 @@ export class AppModule {
           method: RequestMethod.POST,
         },
         {
-          path: '/api/v1/wallet/:walletAddress/multiChain',
-          method: RequestMethod.GET,
-        },
-        {
-          path: '/api/v1/wallet/:stellarAddress/stellar',
+          path: '/api/v1/wallet/:chain/address/:walletAddress',
           method: RequestMethod.GET,
         },
         {
@@ -182,6 +183,10 @@ export class AppModule {
         {
           path: 'api/v1/alchemy/fetch-quotes',
           method: RequestMethod.POST,
+        },
+        {
+          path: '/health',
+          method: RequestMethod.GET,
         },
       )
       .forRoutes('*');
